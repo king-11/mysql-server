@@ -43,6 +43,7 @@
 #include "template_utils.h"
 #include "unittest/gunit/benchmark.h"
 #include "unittest/gunit/strnxfrm.h"
+#include "strings/str_uca_type.h"
 
 using std::make_pair;
 using std::max;
@@ -275,6 +276,51 @@ TEST(StrXfrmTest, UTF8MB4Correctness_as_ci) {
   }
 }
 
+#define MY_UCA_MAXCHAR (0x10FFFF + 1)
+#define MY_UCA_CHARS_PER_PAGE 256
+typedef uint16_t uint16;
+
+void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
+  uint16 *page = weights[codepoint >> 8];
+  if (page == NULL)
+    return;
+
+  fprintf(f, "%s\"U+%04X\":[", codepoint > 0 ? ",\n\t" : "\n\t", codepoint);
+
+  int offset = codepoint & 0xFF;
+  int cecount = page[offset];
+
+  for (int ce = 0; ce < cecount; ce++) {
+    int weight1 = page[256 + (ce*3+0)*256+offset];
+    int weight2 = page[256 + (ce*3+1)*256+offset];
+    int weight3 = page[256 + (ce*3+2)*256+offset];
+    fprintf(f, "%s[%d,%d,%d]", ce > 0 ? "," : "", weight1, weight2, weight3);
+  }
+  fprintf(f, "]");
+}
+
+TEST(StrXfrmTest, PrintCollations) {
+  // Load one collation to get everything going.
+  init_collation("utf8mb4_0900_ai_ci");
+  for (const CHARSET_INFO *cs : all_charsets) {
+    if (cs && (cs->state & MY_CS_AVAILABLE)) {
+      CHARSET_INFO *cs_loaded = init_collation(cs->name);
+      string name = cs_loaded->name;
+      string filename = "weights/" + name + ".json";
+      if (name.find("0900") != std::string::npos) {
+        if (cs_loaded->uca != NULL) {
+          FILE *fl = fopen(filename.c_str(), "w");
+          fprintf(fl, "{");
+          for (int cp = 0; cp < MY_UCA_MAXCHAR; cp++) {
+            printWeightsForCodepoint(fl, cp, cs_loaded->uca->weights);
+          }
+          fprintf(fl, "}");
+          fclose(fl)
+        }
+      }
+    }
+  }
+}
 
 // copied
 TEST(StrXfrmTest, UTF8MB4Correctness_as_ci_1) {
