@@ -200,6 +200,7 @@ TEST_P(StrnxfrmTest, ModifiedUnrolledSrcSrc) {
                           m_length, 192);
 }
 
+// copied
 TEST(StrXfrmTest, SimpleUTF8Correctness) {
   CHARSET_INFO *cs = init_collation("utf8_bin");
 
@@ -223,6 +224,7 @@ TEST(StrXfrmTest, SimpleUTF8Correctness) {
   }
 }
 
+// copied
 TEST(StrXfrmTest, SimpleUTF8MB4Correctness) {
   CHARSET_INFO *cs = init_collation("utf8mb4_0900_ai_ci");
 
@@ -245,6 +247,7 @@ TEST(StrXfrmTest, SimpleUTF8MB4Correctness) {
   }
 }
 
+// copied
 TEST(StrXfrmTest, UTF8MB4Correctness_as_ci) {
   CHARSET_INFO *cs = init_collation("utf8mb4_0900_as_ci");
 
@@ -272,6 +275,8 @@ TEST(StrXfrmTest, UTF8MB4Correctness_as_ci) {
   }
 }
 
+
+// copied
 TEST(StrXfrmTest, UTF8MB4Correctness_as_ci_1) {
   CHARSET_INFO *cs = init_collation("utf8mb4_0900_as_ci");
   // case insensitive
@@ -283,6 +288,7 @@ TEST(StrXfrmTest, UTF8MB4Correctness_as_ci_1) {
   EXPECT_EQ(compare_through_strxfrm(cs, u8"\uAC00", u8"\u326E"), 0);
 }
 
+// copied
 TEST(StrXfrmTest, JapaneseUTF8MB4) {
   CHARSET_INFO *cs = init_collation("utf8mb4_ja_0900_as_cs");
 
@@ -332,6 +338,7 @@ TEST(StrXfrmTest, JapaneseUTF8MB4) {
   }
 }
 
+// copied
 TEST(StrXfrmTest, Japanese_ks_UTF8MB4) {
   CHARSET_INFO *cs = init_collation("utf8mb4_ja_0900_as_cs_ks");
 
@@ -419,6 +426,7 @@ TEST(StrXfrmTest, Japanese_ks_UTF8MB4) {
   EXPECT_LT(compare_through_strxfrm(as_cs_ks, str3, str4), 0);
 }
 
+// copied
 TEST(StrXfrmTest, JapaneseUTF8MB4_1) {
   CHARSET_INFO *cs = init_collation("utf8mb4_ja_0900_as_cs");
   // Japanese HE followed with Handakuten mark
@@ -452,6 +460,7 @@ TEST(StrXfrmTest, JapaneseUTF8MB4_1) {
   expect_arrays_equal(answer2, buf, buf_len);
 }
 
+// copied
 TEST(StrXfrmTest, UTF8MB4PadCorrectness) {
   CHARSET_INFO *cs = init_collation("utf8mb4_0900_as_cs");
 
@@ -565,6 +574,7 @@ BENCHMARK(BM_UTF8MB4StringLength)
 
 // Benchmark testing the default recommended collation for 8.0, without
 // stressing padding as much, but still testing only Latin letters.
+// copied
 static void BM_SimpleUTF8MB4(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -638,6 +648,7 @@ BENCHMARK(BM_SimpleUTF8MB4)
 // Benchmark testing a wider variety of character sets on a more complicated
 // collation (the recommended default collation for 8.0), without stressing
 // padding as much.
+// copied
 static void BM_MixedUTF8MB4(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -684,6 +695,7 @@ static void BM_MixedUTF8MB4(size_t num_iterations) {
 }
 BENCHMARK(BM_MixedUTF8MB4)
 
+// copied
 static void BM_MixedUTF8MB4_AS_CI(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -749,6 +761,7 @@ BENCHMARK(BM_MixedUTF8MB4_AS_CI)
 // Case-sensitive, accent-sensitive benchmark, using the same string as
 // BM_SimpleUTF8MB4. This will naturally be slower, since many more weights
 // need to be generated.
+// copied
 static void BM_MixedUTF8MB4_AS_CS(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1424,6 +1437,7 @@ BENCHMARK(BM_JapaneseUTF8MB4)
   The newlines are spaced a bit randomly in order not to create a perfectly
   predictable pattern for the branch predictor (benchmark paranoia).
 */
+// copied
 static void BM_NewlineFilledUTF8MB4(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1471,6 +1485,7 @@ static void BM_NewlineFilledUTF8MB4(size_t num_iterations) {
 }
 BENCHMARK(BM_NewlineFilledUTF8MB4)
 
+// copied
 static void BM_HashSimpleUTF8MB4(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1506,6 +1521,7 @@ BENCHMARK(BM_HashSimpleUTF8MB4)
   Test a non-trivial collation with contractions, to highlight
   the performance difference.
 */
+// copied
 static void BM_Hungarian_AS_CS(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1593,6 +1609,7 @@ static void BM_Hungarian_AS_CS(size_t num_iterations) {
 }
 BENCHMARK(BM_Hungarian_AS_CS)
 
+// copied
 static void BM_Japanese_AS_CS(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1681,6 +1698,7 @@ static void BM_Japanese_AS_CS(size_t num_iterations) {
 }
 BENCHMARK(BM_Japanese_AS_CS)
 
+// copied
 static void BM_Japanese_AS_CS_KS(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1782,6 +1800,7 @@ static void BM_Japanese_AS_CS_KS(size_t num_iterations) {
 }
 BENCHMARK(BM_Japanese_AS_CS_KS)
 
+// copied
 TEST(StrXfrmTest, ChineseUTF8MB4) {
   CHARSET_INFO *cs = init_collation("utf8mb4_zh_0900_as_cs");
 
@@ -1845,6 +1864,7 @@ TEST(StrXfrmTest, ChineseUTF8MB4) {
   }
 }
 
+// copied
 static void BM_Chinese_AS_CS(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -1959,6 +1979,7 @@ static void BM_Chinese_AS_CS(size_t num_iterations) {
 }
 BENCHMARK(BM_Chinese_AS_CS)
 
+// copied
 static void BM_UTF8MB4_bin(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -2009,6 +2030,7 @@ static void BM_UTF8MB4_bin(size_t num_iterations) {
 }
 BENCHMARK(BM_UTF8MB4_bin)
 
+// copied
 static void BM_UTF8MB4_0900_bin(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -2038,6 +2060,7 @@ static void BM_UTF8MB4_0900_bin(size_t num_iterations) {
 BENCHMARK(BM_UTF8MB4_0900_bin)
 
 // The classic MySQL latin1 collation, for reference.
+// copied
 static void BM_Latin1_CI(size_t num_iterations) {
   StopBenchmarkTiming();
 
@@ -2133,6 +2156,7 @@ TEST(PadCollationTest, BasicTest) {
       0);
 }
 
+// copied
 TEST(StrxfrmTest, NoPadCollation) {
   CHARSET_INFO *ai_ci = init_collation("utf8mb4_0900_ai_ci");
   CHARSET_INFO *as_cs = init_collation("utf8mb4_0900_as_cs");
@@ -2175,6 +2199,7 @@ TEST(StrxfrmTest, NoPadCollation) {
   EXPECT_LT(compare_through_strxfrm(as_cs, "", "\t"), 0);
 }
 
+// copied
 TEST(StrxfrmTest, Contractions) {
   CHARSET_INFO *hu_ai_ci = init_collation("utf8mb4_hu_0900_ai_ci");
 
@@ -2260,6 +2285,7 @@ uint64 hash(CHARSET_INFO *cs, const char *str) {
   that something that we expect doesn't match, still matches
   by pure accident.
 */
+// copied
 TEST(PadCollationTest, HashSort) {
   CHARSET_INFO *ai_ci = init_collation("utf8mb4_0900_ai_ci");
   CHARSET_INFO *as_cs = init_collation("utf8mb4_0900_as_cs");
