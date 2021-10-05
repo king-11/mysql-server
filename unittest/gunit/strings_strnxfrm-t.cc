@@ -299,6 +299,35 @@ void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
   fprintf(f, "]");
 }
 
+#define ROW_LEN 16
+#define ROW16_LEN 8
+
+void print_array_file(const uchar *arr, size_t len, FILE *f) {
+  fprintf(f, "[\n\t");
+  for (size_t i = 0; i < len; ++i) {
+    fprintf(f, " %u", arr[i]);
+    fprintf(f, (i + 1 < len) ? "," : "");
+    fprintf(f, ((i + 1) % ROW_LEN == len % ROW_LEN) ? "\n\t" : "");
+  }
+  fprintf(f, "]");
+}
+
+void print_array16_file(const uint16 *arr, size_t len, FILE *f) {
+  fprintf(f, "[\n\t");
+  for (size_t i = 0; i < len; ++i) {
+    fprintf(f, " %u", arr[i]);
+    fprintf(f, (i + 1 < len) ? "," : "");
+    fprintf(f, ((i + 1) % ROW16_LEN == len % ROW16_LEN) ? "\n\t" : "");
+  }
+  fprintf(f, "]");
+}
+
+#define MY_CS_CTYPE_TABLE_SIZE 257
+#define MY_CS_TO_LOWER_TABLE_SIZE 256
+#define MY_CS_TO_UPPER_TABLE_SIZE 256
+#define MY_CS_SORT_ORDER_TABLE_SIZE 256
+#define MY_CS_TO_UNI_TABLE_SIZE 256
+
 TEST(StrXfrmTest, PrintCollations) {
   // Load one collation to get everything going.
   init_collation("utf8mb4_0900_ai_ci");
@@ -307,17 +336,53 @@ TEST(StrXfrmTest, PrintCollations) {
       CHARSET_INFO *cs_loaded = init_collation(cs->name);
       string name = cs_loaded->name;
       string filename = "weights/" + name + ".json";
+      FILE *fl = fopen(filename.c_str(), "w");
+      fprintf(fl, "{\n");
+
+      fprintf(fl, "\t\"name\": \"%s\",\n", cs_loaded->name);
+      fprintf(fl, "\t\"number\": %u", cs_loaded->number);
+
+      if (cs->ctype != NULL) {
+        fprintf(fl, ",\n");
+        fprintf(fl, "\t\"ctype\": ");
+        print_array_file(cs_loaded->ctype, MY_CS_CTYPE_TABLE_SIZE, fl);
+      }
+
+      if (cs->to_lower != NULL) {
+        fprintf(fl, ",\n");
+        fprintf(fl, "\t\"to_lower\": ");
+        print_array_file(cs_loaded->to_lower, MY_CS_TO_LOWER_TABLE_SIZE, fl);
+      }
+
+      if (cs->to_upper != NULL) {
+        fprintf(fl, ",\n");
+        fprintf(fl, "\t\"to_upper\": ");
+        print_array_file(cs_loaded->to_upper, MY_CS_TO_UPPER_TABLE_SIZE, fl);
+      }
+
+      if (cs->tab_to_uni != NULL) {
+        fprintf(fl, ",\n");
+        print_array16_file(cs_loaded->tab_to_uni, MY_CS_TO_UNI_TABLE_SIZE, fl);
+      }
+
+      if (cs_loaded->sort_order != NULL) {
+        fprintf(fl, ",\n");
+        fprintf(fl, "\t\"sort_order\": ");
+        print_array_file(cs_loaded->sort_order, MY_CS_SORT_ORDER_TABLE_SIZE, fl);
+      }
+
       if (name.find("0900") != std::string::npos) {
+        fprintf(fl, ",\n");
+        fprintf(fl, "\t\"weights\":{");
         if (cs_loaded->uca != NULL) {
-          FILE *fl = fopen(filename.c_str(), "w");
-          fprintf(fl, "{");
           for (int cp = 0; cp < MY_UCA_MAXCHAR; cp++) {
             printWeightsForCodepoint(fl, cp, cs_loaded->uca->weights);
           }
-          fprintf(fl, "}");
-          fclose(fl)
         }
+        fprintf(fl, "\n}\n");
       }
+      fprintf(fl, "\n}");
+      fclose(fl);
     }
   }
 }
