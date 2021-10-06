@@ -285,7 +285,7 @@ void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
   if (page == NULL)
     return;
 
-  fprintf(f, "%s\"U+%04X\":[", codepoint > 0 ? ",\n\t" : "\n\t", codepoint);
+  fprintf(f, "%s\"U+%04X\":[", codepoint > 0 ? ",\n\t\t" : "\n\t\t", codepoint);
 
   int offset = codepoint & 0xFF;
   int cecount = page[offset];
@@ -303,21 +303,21 @@ void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
 #define ROW16_LEN 8
 
 void print_array_file(const uchar *arr, size_t len, FILE *f) {
-  fprintf(f, "[\n\t");
+  fprintf(f, "[\n\t\t");
   for (size_t i = 0; i < len; ++i) {
     fprintf(f, " %u", arr[i]);
     fprintf(f, (i + 1 < len) ? "," : "");
-    fprintf(f, ((i + 1) % ROW_LEN == len % ROW_LEN) ? "\n\t" : "");
+    fprintf(f, ((i + 1) % ROW_LEN == len % ROW_LEN) ? "\n\t\t" : "");
   }
   fprintf(f, "]");
 }
 
 void print_array16_file(const uint16 *arr, size_t len, FILE *f) {
-  fprintf(f, "[\n\t");
+  fprintf(f, "[\n\t\t");
   for (size_t i = 0; i < len; ++i) {
     fprintf(f, " %u", arr[i]);
     fprintf(f, (i + 1 < len) ? "," : "");
-    fprintf(f, ((i + 1) % ROW16_LEN == len % ROW16_LEN) ? "\n\t" : "");
+    fprintf(f, ((i + 1) % ROW16_LEN == len % ROW16_LEN) ? "\n\t\t" : "");
   }
   fprintf(f, "]");
 }
@@ -339,47 +339,48 @@ TEST(StrXfrmTest, PrintCollations) {
       FILE *fl = fopen(filename.c_str(), "w");
       fprintf(fl, "{\n");
 
-      fprintf(fl, "\t\"name\": \"%s\",\n", cs_loaded->name);
-      fprintf(fl, "\t\"number\": %u", cs_loaded->number);
+      fprintf(fl, "\t\"Name\": \"%s\",\n", cs_loaded->name);
+      fprintf(fl, "\t\"Number\": %u", cs_loaded->number);
 
       if (cs->ctype != NULL) {
         fprintf(fl, ",\n");
-        fprintf(fl, "\t\"ctype\": ");
+        fprintf(fl, "\t\"CType\": ");
         print_array_file(cs_loaded->ctype, MY_CS_CTYPE_TABLE_SIZE, fl);
       }
 
       if (cs->to_lower != NULL) {
         fprintf(fl, ",\n");
-        fprintf(fl, "\t\"to_lower\": ");
+        fprintf(fl, "\t\"ToLower\": ");
         print_array_file(cs_loaded->to_lower, MY_CS_TO_LOWER_TABLE_SIZE, fl);
       }
 
       if (cs->to_upper != NULL) {
         fprintf(fl, ",\n");
-        fprintf(fl, "\t\"to_upper\": ");
+        fprintf(fl, "\t\"ToUpper\": ");
         print_array_file(cs_loaded->to_upper, MY_CS_TO_UPPER_TABLE_SIZE, fl);
       }
 
       if (cs->tab_to_uni != NULL) {
         fprintf(fl, ",\n");
+        fprintf(fl, "\t\"TabToUni\": ");
         print_array16_file(cs_loaded->tab_to_uni, MY_CS_TO_UNI_TABLE_SIZE, fl);
       }
 
       if (cs_loaded->sort_order != NULL) {
         fprintf(fl, ",\n");
-        fprintf(fl, "\t\"sort_order\": ");
+        fprintf(fl, "\t\"SortOrder\": ");
         print_array_file(cs_loaded->sort_order, MY_CS_SORT_ORDER_TABLE_SIZE, fl);
       }
 
       if (name.find("0900") != std::string::npos) {
         fprintf(fl, ",\n");
-        fprintf(fl, "\t\"weights\":{");
+        fprintf(fl, "\t\"Weights\":{");
         if (cs_loaded->uca != NULL) {
           for (int cp = 0; cp < MY_UCA_MAXCHAR; cp++) {
             printWeightsForCodepoint(fl, cp, cs_loaded->uca->weights);
           }
         }
-        fprintf(fl, "\n}\n");
+        fprintf(fl, "\n\t}");
       }
       fprintf(fl, "\n}");
       fclose(fl);
