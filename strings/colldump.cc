@@ -21,7 +21,50 @@
 
 #include "str_uca_type.h"
 
-void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
+static void print_contractions_1(FILE *f, my_wc_t *buf, size_t depth, bool *first, const MY_CONTRACTION &contraction) {
+  buf[depth] = contraction.ch;
+
+  if (contraction.is_contraction_tail) {
+    if (!*first) {
+      fprintf(f, ",");
+    }
+
+    *first = false;
+    fprintf(f, "{\"Path\" : [");
+    for (size_t i = 0; i <= depth; i++) {
+      fprintf(f, "%s%d", i > 0 ? "," : "", (unsigned int)buf[i]);
+    }
+    fprintf(f, "], \"Weights\" : [");
+    for (size_t i = 0; i < MY_UCA_MAX_WEIGHT_SIZE; i++) {
+      fprintf(f, "%s%d", i > 0 ? "," : "", contraction.weight[i]);
+    }
+    fprintf(f, "]}");
+  }
+
+  for (const MY_CONTRACTION &ctr : contraction.child_nodes) {
+    print_contractions_1(f, buf, depth+1, first, ctr);
+  }
+}
+
+static void print_contractions(FILE *f, std::vector<MY_CONTRACTION> *contractions) {
+  my_wc_t buf[256];
+  bool first = true;
+
+  for (const MY_CONTRACTION &ctr : *contractions) {
+    print_contractions_1(f, buf, 0, &first, ctr);
+  }
+}
+
+static void print_reorder_params(FILE *f, struct Reorder_param *reorder) {
+  for (int i = 0; i < reorder->wt_rec_num; i++) {
+    struct Reorder_wt_rec &r = reorder->wt_rec[i];
+    fprintf(f, "%s[%d, %d, %d, %d]", i > 0 ? ", " : "",
+      r.old_wt_bdy.begin, r.old_wt_bdy.end,
+      r.new_wt_bdy.begin, r.new_wt_bdy.end);
+  }
+}
+
+static void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
   uint16 *page = weights[codepoint >> 8];
   if (page == NULL)
     return;
@@ -40,7 +83,7 @@ void printWeightsForCodepoint(FILE *f, int codepoint, uint16 **weights) {
   fprintf(f, "]");
 }
 
-void print_array_file(const uchar *arr, size_t len, FILE *f) {
+static void print_array_file(const uchar *arr, size_t len, FILE *f) {
   fprintf(f, "[");
   for (size_t i = 0; i < len; ++i) {
     fprintf(f, " %u", arr[i]);
@@ -49,7 +92,7 @@ void print_array_file(const uchar *arr, size_t len, FILE *f) {
   fprintf(f, "]");
 }
 
-void print_array16_file(const uint16 *arr, size_t len, FILE *f) {
+static void print_array16_file(const uint16 *arr, size_t len, FILE *f) {
   fprintf(f, "[");
   for (size_t i = 0; i < len; ++i) {
     fprintf(f, " %u", arr[i]);
@@ -67,20 +110,60 @@ static CHARSET_INFO *init_collation(const char *name) {
 #define MY_UCA_MAXCHAR (0x10FFFF + 1)
 #define MY_UCA_CHARS_PER_PAGE 256
 
-int main() {
+extern MY_COLLATION_HANDLER my_collation_uca_900_handler;
+extern MY_COLLATION_HANDLER my_collation_any_uca_handler;
+extern MY_COLLATION_HANDLER my_collation_utf16_uca_handler;
+extern MY_COLLATION_HANDLER my_collation_utf32_uca_handler;
+extern MY_COLLATION_HANDLER my_collation_ucs2_uca_handler;
+
+struct KNOWN_HANDLER {
+  const char *name;
+  const MY_COLLATION_HANDLER *h;
+};
+
+static KNOWN_HANDLER known_handlers[] = {
+  { "8bit_bin", &my_collation_8bit_bin_handler },
+  { "8bit_simple_ci", &my_collation_8bit_simple_ci_handler },
+  { "any_uca", &my_collation_any_uca_handler },
+  { "uca_900", &my_collation_uca_900_handler },
+  { "utf16_uca", &my_collation_utf16_uca_handler },
+  { "utf32_uca", &my_collation_utf32_uca_handler },
+  { "ucs2_uca", &my_collation_ucs2_uca_handler },
+};
+
+int main(int argc, char **argv) {
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s PATH_TO_DUMP\n", argv[0]);
+    return 1;
+  }
+
+  char pathbuf[4096];
+
   // Load one collation to get everything going.
   init_collation("utf8mb4_0900_ai_ci");
   for (const CHARSET_INFO *cs : all_charsets) {
     if (cs && (cs->state & MY_CS_AVAILABLE)) {
       CHARSET_INFO *cs_loaded = init_collation(cs->name);
-      std::string name = cs_loaded->name;
-      std::string filename = "weights/" + name + ".json";
-      FILE *fl = fopen(filename.c_str(), "w");
-      fprintf(fl, "{\n");
+      snprintf(pathbuf, sizeof(pathbuf), "%s/%s.json", argv[1], cs_loaded->name);
 
+      FILE *fl = fopen(pathbuf, "w");
+      if (fl == NULL) {
+        fprintf(stderr, "failed to create '%s'\n", pathbuf);
+        return 1;
+      }
+
+      fprintf(fl, "{\n");
       fprintf(fl, "\t\"Name\": \"%s\",\n", cs_loaded->name);
       fprintf(fl, "\t\"Charset\": \"%s\",\n", cs_loaded->csname);
-      fprintf(fl, "\t\"Binary\": \"%s\",\n", (cs_loaded->state & MY_CS_BINSORT) ? "true" : "false");
+      fprintf(fl, "\t\"Binary\": %s,\n", (cs_loaded->state & MY_CS_BINSORT) ? "true" : "false");
+
+      for (const KNOWN_HANDLER &handler : known_handlers) {
+        if (cs_loaded->coll == handler.h) {
+          fprintf(fl, "\t\"CollationImpl\": \"%s\",\n", handler.name);
+          break;
+        }
+      }
+
       fprintf(fl, "\t\"Number\": %u", cs_loaded->number);
 
       if (cs->ctype != NULL) {
@@ -113,16 +196,37 @@ int main() {
         print_array_file(cs_loaded->sort_order, 256, fl);
       }
 
-      if (name.find("0900") != std::string::npos) {
+      if (cs_loaded->uca != NULL) {
         fprintf(fl, ",\n");
         fprintf(fl, "\t\"Weights\":{");
-        if (cs_loaded->uca != NULL) {
+        if (cs_loaded->uca->version == UCA_V900) {
           for (int cp = 0; cp < MY_UCA_MAXCHAR; cp++) {
             printWeightsForCodepoint(fl, cp, cs_loaded->uca->weights);
           }
+        } else {
+          // TODO
         }
         fprintf(fl, "\n\t}");
+
+        if (cs_loaded->uca->have_contractions) {
+          fprintf(fl, ",\n");
+          fprintf(fl, "\t\"Contractions\":[\n");
+          print_contractions(fl, cs_loaded->uca->contraction_nodes);
+          fprintf(fl, "\n\t]");
+        }
       }
+
+      if (cs_loaded->coll_param != NULL) {
+        fprintf(fl, ",\n\t\"UppercaseFirst\":%s",
+          cs_loaded->coll_param->case_first == CASE_FIRST_UPPER ? "true" : "false");
+        if (cs_loaded->coll_param->reorder_param != NULL) {
+          fprintf(fl, ",\n");
+          fprintf(fl, "\t\"Reorder\":[\n");
+          print_reorder_params(fl, cs_loaded->coll_param->reorder_param);
+          fprintf(fl, "\n\t]");
+        }
+      }
+
       fprintf(fl, "\n}");
       fclose(fl);
     }
