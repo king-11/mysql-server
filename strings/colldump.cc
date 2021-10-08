@@ -21,7 +21,7 @@
 
 #include "str_uca_type.h"
 
-static void print_contractions_1(FILE *f, my_wc_t *buf, size_t depth, bool *first, const MY_CONTRACTION &contraction) {
+static void print_contractions_1(FILE *f, my_wc_t *buf, size_t depth, bool *first, bool contextual, const MY_CONTRACTION &contraction) {
   buf[depth] = contraction.ch;
 
   if (contraction.is_contraction_tail) {
@@ -38,11 +38,18 @@ static void print_contractions_1(FILE *f, my_wc_t *buf, size_t depth, bool *firs
     for (size_t i = 0; i < MY_UCA_MAX_WEIGHT_SIZE; i++) {
       fprintf(f, "%s%d", i > 0 ? "," : "", contraction.weight[i]);
     }
-    fprintf(f, "]}");
+    fprintf(f, "]");
+    if (contextual) {
+      fprintf(f, ", \"Contextual\" : true");
+    }
+    fprintf(f, "}");
   }
 
   for (const MY_CONTRACTION &ctr : contraction.child_nodes) {
-    print_contractions_1(f, buf, depth+1, first, ctr);
+    print_contractions_1(f, buf, depth+1, first, false, ctr);
+  }
+  for (const MY_CONTRACTION &ctr : contraction.child_nodes_context) {
+    print_contractions_1(f, buf, depth+1, first, true, ctr);
   }
 }
 
@@ -51,7 +58,7 @@ static void print_contractions(FILE *f, std::vector<MY_CONTRACTION> *contraction
   bool first = true;
 
   for (const MY_CONTRACTION &ctr : *contractions) {
-    print_contractions_1(f, buf, 0, &first, ctr);
+    print_contractions_1(f, buf, 0, &first, false, ctr);
   }
 }
 
@@ -132,6 +139,20 @@ static KNOWN_HANDLER known_handlers[] = {
 };
 
 int main(int argc, char **argv) {
+  if (argc == 3 && !strcmp(argv[1], "--test")) {
+    uchar src[4096];
+    uchar dst[4096*4];
+    CHARSET_INFO *cs = init_collation(argv[2]);
+    if (cs == NULL) {
+      fprintf(stderr, "unknown collation: %s", argv[2]);
+      return 1;
+    }
+    size_t readin = fread(src, 1, 4096, stdin);
+    size_t wlen = cs->coll->strnxfrm(cs, dst, sizeof(dst), 0, src, readin, 0);
+    fwrite(dst, 1, wlen, stdout);
+    return 0;
+  }
+
   if (argc != 2) {
     fprintf(stderr, "usage: %s PATH_TO_DUMP\n", argv[0]);
     return 1;
