@@ -116,11 +116,10 @@ static void print_uca_weights_900(J &json, int codepoint, uint16 **weights) {
 
   int offset = codepoint & 0xFF;
   int cecount = page[offset];
+  char key[32];
+  snprintf(key, sizeof(key), "U+%04X", codepoint);
 
-  rapidjson::StringBuffer key;
-  rapidjson::UTF8<>::Encode(key, codepoint);
-
-  json.Key(key.GetString(), key.GetSize());
+  json.Key(key);
   json.StartArray();
   for (int ce = 0; ce < cecount; ce++) {
     json.Uint(page[256 + (ce*3+0)*256+offset]);
@@ -141,10 +140,10 @@ static void print_uca_weights_legacy(J &json, int codepoint, uint16 **weights, u
   if (!w[0])
     return;
 
-  rapidjson::StringBuffer key;
-  rapidjson::UTF8<>::Encode(key, codepoint);
+  char key[32];
+  snprintf(key, sizeof(key), "U+%04X", codepoint);
 
-  json.Key(key.GetString(), key.GetSize());
+  json.Key(key);
   json.StartArray();
   for (; w[0]; w++) {
     json.Uint(w[0]);
