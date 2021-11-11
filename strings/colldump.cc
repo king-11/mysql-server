@@ -227,10 +227,20 @@ static int dumpall(const char *dumppath) {
     json.String(charset->name);
     json.Key("Charset");
     json.String(charset->csname);
-    json.Key("Binary");
-    json.Bool((charset->state & MY_CS_BINSORT) != 0);
     json.Key("Number");
     json.Uint(charset->number);
+
+    json.Key("Flags");
+    json.StartObject();
+
+    json.Key("Binary");
+    json.Bool((charset->state & MY_CS_BINSORT) != 0);
+    json.Key("ASCII");
+    json.Bool((charset->state & MY_CS_PUREASCII) != 0);
+    json.Key("Default");
+    json.Bool((charset->state & MY_CS_PRIMARY) != 0);
+
+    json.EndObject();
 
     for (const KNOWN_HANDLER &handler : known_handlers) {
       if (charset->coll == handler.h) {
